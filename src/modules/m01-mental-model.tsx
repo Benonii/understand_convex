@@ -45,24 +45,24 @@ const Component = () => (
         title="Convex end-to-end: from useQuery to disk and back"
         height={460}
         nodes={[
-          { id: 'app', label: 'React app', sub: 'useQuery / useMutation', x: 20, y: 40, tone: 'plain' },
-          { id: 'client', label: 'Convex client', sub: 'BaseConvexClient', x: 20, y: 200, tone: 'yellow' },
-          { id: 'sync', label: 'Sync worker', sub: 'one per WebSocket', x: 290, y: 200, tone: 'yellow' },
-          { id: 'runner', label: 'Function runner', sub: 'V8 isolates (Rust host)', x: 560, y: 60, tone: 'purple' },
-          { id: 'db', label: 'Database layer', sub: 'txn log + indexes', x: 560, y: 220, tone: 'red' },
-          { id: 'subs', label: 'Subscription mgr', sub: 'read sets of live queries', x: 290, y: 370, tone: 'yellow' },
-          { id: 'persist', label: 'Persistence', sub: 'SQLite / Postgres / MySQL', x: 810, y: 220, w: 170, tone: 'plain' },
+          { id: 'app', label: 'React app', sub: 'useQuery / useMutation', x: 20, y: 40, tone: 'plain', code: ['client.useQuery', 'client.useSubscription', 'client.useQueries'] },
+          { id: 'client', label: 'Convex client', sub: 'BaseConvexClient', x: 20, y: 200, tone: 'yellow', code: ['client.base', 'client.localState', 'client.reactClient', 'client.subscribe'] },
+          { id: 'sync', label: 'Sync worker', sub: 'one per WebSocket', x: 290, y: 200, tone: 'yellow', code: ['sync.worker', 'sync.state', 'sync.wsHandler'] },
+          { id: 'runner', label: 'Function runner', sub: 'V8 isolates (Rust host)', x: 560, y: 60, tone: 'purple', code: ['runner.functionRunner', 'isolate.v8', 'isolate.client'] },
+          { id: 'db', label: 'Database layer', sub: 'txn log + indexes', x: 560, y: 220, tone: 'red', code: ['db.transaction', 'db.snapshot', 'db.indexRange'] },
+          { id: 'subs', label: 'Subscription mgr', sub: 'read sets of live queries', x: 290, y: 370, tone: 'yellow', code: ['db.subscriptions', 'db.subscriptionMatch'] },
+          { id: 'persist', label: 'Persistence', sub: 'SQLite / Postgres / MySQL', x: 810, y: 220, w: 170, tone: 'plain', code: ['persistence.trait', 'persistence.sqlite', 'persistence.documentLog', 'persistence.postgres'] },
         ]}
         edges={[
-          { id: 'a-c', from: 'app', to: 'client', label: 'subscribe' },
-          { id: 'c-s', from: 'client', to: 'sync', label: 'WebSocket' },
-          { id: 's-r', from: 'sync', to: 'runner', label: 'run fn', curve: -0.15 },
-          { id: 'r-d', from: 'runner', to: 'db', label: 'ctx.db' },
-          { id: 'd-p', from: 'db', to: 'persist', label: 'commit' },
-          { id: 'd-sub', from: 'db', to: 'subs', label: 'write log', curve: 0.15 },
-          { id: 'sub-s', from: 'subs', to: 'sync', label: 'invalidate' },
-          { id: 's-c', from: 'sync', to: 'client', label: 'Transition', curve: 0.2 },
-          { id: 'c-a', from: 'client', to: 'app', label: 're-render', curve: 0.2 },
+          { id: 'a-c', from: 'app', to: 'client', label: 'subscribe', code: ['client.useQueries', 'client.subscribe', 'client.localState'] },
+          { id: 'c-s', from: 'client', to: 'sync', label: 'WebSocket', code: ['client.websocket', 'client.protocol', 'sync.wsHandler'] },
+          { id: 's-r', from: 'sync', to: 'runner', label: 'run fn', curve: -0.15, code: ['sync.runQuery', 'application.query', 'runner.functionRunner'] },
+          { id: 'r-d', from: 'runner', to: 'db', label: 'ctx.db', code: ['isolate.syscalls', 'server.syscall', 'server.dbReader'] },
+          { id: 'd-p', from: 'db', to: 'persist', label: 'commit', code: ['db.committer', 'persistence.sqliteWrite'] },
+          { id: 'd-sub', from: 'db', to: 'subs', label: 'write log', curve: 0.15, code: ['db.writeLog', 'db.publish'] },
+          { id: 'sub-s', from: 'subs', to: 'sync', label: 'invalidate', code: ['db.subscriptionMatch', 'sync.beginUpdate'] },
+          { id: 's-c', from: 'sync', to: 'client', label: 'Transition', curve: 0.2, code: ['sync.transition', 'client.protocolServer', 'client.remoteQuerySet'] },
+          { id: 'c-a', from: 'client', to: 'app', label: 're-render', curve: 0.2, code: ['client.notifyQueryResults', 'client.reactClient', 'client.useSubscription'] },
         ]}
         steps={[
           { title: 'A component subscribes', text: 'useQuery(api.messages.list, { channel }) registers a query with the client. The client batches it into a ModifyQuerySet message: "add query #7 = messages:list with these args".', nodes: ['app', 'client'], edges: ['a-c'] },
@@ -203,20 +203,20 @@ export function Chat({ channel }: { channel: Id<"channels"> }) {
         height={380}
         nodes={[
           { id: 'ui', label: 'UI', sub: 'send({ body })', x: 20, y: 150, w: 140 },
-          { id: 'opt', label: 'Optimistic layer', sub: 'optional local patch', x: 200, y: 30, tone: 'yellow' },
-          { id: 'ws', label: 'Sync worker', sub: 'Mutation{requestId}', x: 200, y: 260, tone: 'yellow' },
-          { id: 'iso', label: 'Isolate', sub: 'run handler @ ts=T0', x: 430, y: 150, tone: 'purple' },
-          { id: 'commit', label: 'Committer', sub: 'OCC check, assign T1', x: 650, y: 150, tone: 'red' },
-          { id: 'log', label: 'Txn log', sub: 'persisted', x: 850, y: 150, w: 130 },
+          { id: 'opt', label: 'Optimistic layer', sub: 'optional local patch', x: 200, y: 30, tone: 'yellow', code: ['client.optimistic', 'client.enqueueMutation'] },
+          { id: 'ws', label: 'Sync worker', sub: 'Mutation{requestId}', x: 200, y: 260, tone: 'yellow', code: ['sync.mutation', 'sync.worker'] },
+          { id: 'iso', label: 'Isolate', sub: 'run handler @ ts=T0', x: 430, y: 150, tone: 'purple', code: ['application.mutation', 'isolate.v8', 'isolate.syscalls'] },
+          { id: 'commit', label: 'Committer', sub: 'OCC check, assign T1', x: 650, y: 150, tone: 'red', code: ['db.committer', 'db.occ', 'db.nextCommitTs'] },
+          { id: 'log', label: 'Txn log', sub: 'persisted', x: 850, y: 150, w: 130, code: ['persistence.sqliteWrite', 'persistence.documentLog', 'db.writeLog'] },
         ]}
         edges={[
-          { id: 'u-o', from: 'ui', to: 'opt', label: 'instant' },
-          { id: 'u-w', from: 'ui', to: 'ws', label: 'WS frame' },
-          { id: 'w-i', from: 'ws', to: 'iso' },
-          { id: 'i-c', from: 'iso', to: 'commit', label: 'reads+writes' },
-          { id: 'c-i', from: 'commit', to: 'iso', label: 'conflict → retry', curve: 0.35 },
-          { id: 'c-l', from: 'commit', to: 'log', label: 'append' },
-          { id: 'c-w', from: 'commit', to: 'ws', label: 'ok @ T1', curve: -0.2 },
+          { id: 'u-o', from: 'ui', to: 'opt', label: 'instant', code: ['client.enqueueMutation', 'client.optimistic'] },
+          { id: 'u-w', from: 'ui', to: 'ws', label: 'WS frame', code: ['client.enqueueMutation', 'client.protocol', 'client.websocket'] },
+          { id: 'w-i', from: 'ws', to: 'iso', code: ['sync.mutation', 'application.mutation'] },
+          { id: 'i-c', from: 'iso', to: 'commit', label: 'reads+writes', code: ['db.transaction', 'db.readSet', 'db.writes'] },
+          { id: 'c-i', from: 'commit', to: 'iso', label: 'conflict → retry', curve: 0.35, code: ['application.mutation', 'db.occ', 'db.commitConflict'] },
+          { id: 'c-l', from: 'commit', to: 'log', label: 'append', code: ['db.committer', 'persistence.sqliteWrite'] },
+          { id: 'c-w', from: 'commit', to: 'ws', label: 'ok @ T1', curve: -0.2, code: ['sync.mutation', 'client.requestManager'] },
         ]}
         steps={[
           { title: 'Optional optimistic update', text: 'If you attached .withOptimisticUpdate, the client patches its local query results right away. This is a temporary layer over server state.', nodes: ['ui', 'opt'], edges: ['u-o'] },
@@ -241,17 +241,17 @@ export function Chat({ channel }: { channel: Id<"channels"> }) {
         height={300}
         nodes={[
           { id: 'src', label: 'convex/*.ts', sub: 'your source', x: 20, y: 110, w: 140 },
-          { id: 'esb', label: 'esbuild', sub: 'bundle per runtime', x: 200, y: 110, tone: 'yellow' },
-          { id: 'push', label: 'Push', sub: 'modules + schema', x: 410, y: 110, tone: 'purple' },
-          { id: 'check', label: 'Backend checks', sub: 'analyze + schema', x: 620, y: 30, tone: 'red' },
-          { id: 'gen', label: 'Codegen', sub: '_generated/*', x: 620, y: 200, tone: 'yellow' },
+          { id: 'esb', label: 'esbuild', sub: 'bundle per runtime', x: 200, y: 110, tone: 'yellow', code: ['cli.bundle', 'cli.useNode'] },
+          { id: 'push', label: 'Push', sub: 'modules + schema', x: 410, y: 110, tone: 'purple', code: ['cli.push'] },
+          { id: 'check', label: 'Backend checks', sub: 'analyze + schema', x: 620, y: 30, tone: 'red', code: ['cli.push'] },
+          { id: 'gen', label: 'Codegen', sub: '_generated/*', x: 620, y: 200, tone: 'yellow', code: ['cli.codegen', 'server.anyApi'] },
           { id: 'live', label: 'Live', sub: 'new fns serving', x: 830, y: 110, w: 150 },
         ]}
         edges={[
-          { id: 's-e', from: 'src', to: 'esb' },
-          { id: 'e-p', from: 'esb', to: 'push' },
+          { id: 's-e', from: 'src', to: 'esb', code: ['cli.bundle'] },
+          { id: 'e-p', from: 'esb', to: 'push', code: ['cli.push'] },
           { id: 'p-c', from: 'push', to: 'check' },
-          { id: 'p-g', from: 'push', to: 'gen' },
+          { id: 'p-g', from: 'push', to: 'gen', code: ['cli.codegen'] },
           { id: 'c-l', from: 'check', to: 'live' },
         ]}
         steps={[

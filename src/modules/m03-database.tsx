@@ -328,17 +328,17 @@ await ctx.db.delete(id);
         title="usePaginatedQuery under the hood"
         height={340}
         nodes={[
-          { id: 'hook', label: 'usePaginatedQuery', sub: 'loadMore(20)', x: 20, y: 140, w: 180, tone: 'yellow' },
-          { id: 'p1', label: 'Page 1 query', sub: 'cursor=null', x: 290, y: 30 },
-          { id: 'p2', label: 'Page 2 query', sub: 'cursor=c1', x: 290, y: 140 },
-          { id: 'p3', label: 'Page 3 query', sub: 'cursor=c2', x: 290, y: 250 },
-          { id: 'idx', label: 'Index', sub: 'by_channel desc', x: 580, y: 140, tone: 'red' },
-          { id: 'ins', label: 'New insert', sub: 'lands in page 1 range', x: 810, y: 30, tone: 'purple' },
+          { id: 'hook', label: 'usePaginatedQuery', sub: 'loadMore(20)', x: 20, y: 140, w: 180, tone: 'yellow', code: ['client.usePaginatedQuery'] },
+          { id: 'p1', label: 'Page 1 query', sub: 'cursor=null', x: 290, y: 30, code: ['server.paginate'] },
+          { id: 'p2', label: 'Page 2 query', sub: 'cursor=c1', x: 290, y: 140, code: ['server.paginate'] },
+          { id: 'p3', label: 'Page 3 query', sub: 'cursor=c2', x: 290, y: 250, code: ['server.paginate'] },
+          { id: 'idx', label: 'Index', sub: 'by_channel desc', x: 580, y: 140, tone: 'red', code: ['db.indexRange', 'persistence.sqliteScan', 'server.indexRange'] },
+          { id: 'ins', label: 'New insert', sub: 'lands in page 1 range', x: 810, y: 30, tone: 'purple', code: ['server.dbWriter', 'db.writes'] },
         ]}
         edges={[
-          { id: 'h1', from: 'hook', to: 'p1' }, { id: 'h2', from: 'hook', to: 'p2' }, { id: 'h3', from: 'hook', to: 'p3' },
-          { id: '1i', from: 'p1', to: 'idx' }, { id: '2i', from: 'p2', to: 'idx' }, { id: '3i', from: 'p3', to: 'idx' },
-          { id: 'ins-idx', from: 'ins', to: 'idx' }, { id: 'idx-1', from: 'idx', to: 'p1', curve: 0.25, label: 'invalidate' },
+          { id: 'h1', from: 'hook', to: 'p1', code: ['client.usePaginatedQuery'] }, { id: 'h2', from: 'hook', to: 'p2', code: ['client.usePaginatedQuery'] }, { id: 'h3', from: 'hook', to: 'p3', code: ['client.usePaginatedQuery'] },
+          { id: '1i', from: 'p1', to: 'idx', code: ['server.paginate', 'db.indexRange'] }, { id: '2i', from: 'p2', to: 'idx', code: ['server.paginate', 'db.indexRange'] }, { id: '3i', from: 'p3', to: 'idx', code: ['server.paginate', 'db.indexRange'] },
+          { id: 'ins-idx', from: 'ins', to: 'idx', code: ['db.committer', 'persistence.sqliteWrite'] }, { id: 'idx-1', from: 'idx', to: 'p1', curve: 0.25, label: 'invalidate', code: ['db.subscriptionMatch', 'db.readSet'] },
         ]}
         steps={[
           { title: 'Each page is its own subscription', text: 'The hook subscribes to the same query function once per loaded page, each with a different cursor argument. They are all regular reactive queries.', nodes: ['hook', 'p1', 'p2', 'p3'], edges: ['h1', 'h2', 'h3'] },
@@ -421,16 +421,16 @@ const likers = await Promise.all(likes.map((l) => ctx.db.get(l.user)));
         title="ctx.db.patch → durable, indexed, visible"
         height={300}
         nodes={[
-          { id: 'h', label: 'Handler', sub: 'ctx.db.patch(id, …)', x: 20, y: 120, tone: 'purple' },
-          { id: 'buf', label: 'Write buffer', sub: 'in-txn overlay', x: 230, y: 120, tone: 'yellow' },
-          { id: 'val', label: 'Validate', sub: 'schema + limits', x: 440, y: 20, tone: 'red' },
-          { id: 'ix', label: 'Index updates', sub: 'old key ✗ new key ✓', x: 440, y: 220, tone: 'red' },
-          { id: 'log', label: 'Commit @ ts', sub: 'docs + index rows', x: 680, y: 120, tone: 'plain' },
-          { id: 'subs', label: 'Readers', sub: 'snapshot ≥ ts', x: 880, y: 120, w: 100 },
+          { id: 'h', label: 'Handler', sub: 'ctx.db.patch(id, …)', x: 20, y: 120, tone: 'purple', code: ['server.dbWriter', 'server.syscall', 'isolate.syscalls'] },
+          { id: 'buf', label: 'Write buffer', sub: 'in-txn overlay', x: 230, y: 120, tone: 'yellow', code: ['db.writes', 'db.transaction'] },
+          { id: 'val', label: 'Validate', sub: 'schema + limits', x: 440, y: 20, tone: 'red', code: ['values.validators'] },
+          { id: 'ix', label: 'Index updates', sub: 'old key ✗ new key ✓', x: 440, y: 220, tone: 'red', code: ['persistence.documentLog', 'db.writes'] },
+          { id: 'log', label: 'Commit @ ts', sub: 'docs + index rows', x: 680, y: 120, tone: 'plain', code: ['db.committer', 'persistence.sqliteWrite', 'persistence.sqlite'] },
+          { id: 'subs', label: 'Readers', sub: 'snapshot ≥ ts', x: 880, y: 120, w: 100, code: ['db.snapshot', 'db.publish'] },
         ]}
         edges={[
-          { id: 'h-b', from: 'h', to: 'buf' }, { id: 'b-v', from: 'buf', to: 'val' }, { id: 'b-i', from: 'buf', to: 'ix' },
-          { id: 'v-l', from: 'val', to: 'log' }, { id: 'i-l', from: 'ix', to: 'log' }, { id: 'l-s', from: 'log', to: 'subs' },
+          { id: 'h-b', from: 'h', to: 'buf', code: ['server.dbWriter', 'db.writes'] }, { id: 'b-v', from: 'buf', to: 'val' }, { id: 'b-i', from: 'buf', to: 'ix', code: ['persistence.documentLog'] },
+          { id: 'v-l', from: 'val', to: 'log', code: ['db.committer'] }, { id: 'i-l', from: 'ix', to: 'log', code: ['persistence.sqliteWrite'] }, { id: 'l-s', from: 'log', to: 'subs', code: ['db.publish', 'db.subscriptions'] },
         ]}
         steps={[
           { title: 'Writes are buffered', text: 'patch/insert/delete don\'t touch storage. They go into a per-transaction write buffer. Later reads in the same mutation see them (read-your-own-writes inside the txn).', nodes: ['h', 'buf'], edges: ['h-b'] },

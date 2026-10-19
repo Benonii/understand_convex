@@ -141,20 +141,20 @@ export const sendAndCount = mutation({
         title="Two concurrent mutations, one conflict, one retry"
         height={440}
         nodes={[
-          { id: 'a', label: 'Mutation A', sub: 'buyTicket (client 1)', x: 30, y: 40, tone: 'yellow' },
-          { id: 'b', label: 'Mutation B', sub: 'buyTicket (client 2)', x: 30, y: 300, tone: 'purple' },
-          { id: 'snap', label: 'Snapshot @ ts=500', sub: 'event.remaining = 1', x: 310, y: 170, w: 200 },
-          { id: 'com', label: 'Committer', sub: 'serial, validates', x: 600, y: 170, tone: 'red' },
-          { id: 'log', label: 'Write log + persistence', sub: 'ts=510: remaining=0', x: 800, y: 40, w: 180 },
-          { id: 'retry', label: 'Retry B @ ts=511', sub: 'sees remaining = 0', x: 800, y: 300, w: 180 },
+          { id: 'a', label: 'Mutation A', sub: 'buyTicket (client 1)', x: 30, y: 40, tone: 'yellow', code: ['application.mutation', 'db.transaction'] },
+          { id: 'b', label: 'Mutation B', sub: 'buyTicket (client 2)', x: 30, y: 300, tone: 'purple', code: ['application.mutation', 'db.transaction'] },
+          { id: 'snap', label: 'Snapshot @ ts=500', sub: 'event.remaining = 1', x: 310, y: 170, w: 200, code: ['db.snapshot', 'db.timestamp'] },
+          { id: 'com', label: 'Committer', sub: 'serial, validates', x: 600, y: 170, tone: 'red', code: ['db.committer', 'db.occ', 'db.nextCommitTs'] },
+          { id: 'log', label: 'Write log + persistence', sub: 'ts=510: remaining=0', x: 800, y: 40, w: 180, code: ['db.writeLog', 'persistence.sqliteWrite'] },
+          { id: 'retry', label: 'Retry B @ ts=511', sub: 'sees remaining = 0', x: 800, y: 300, w: 180, code: ['application.mutation', 'db.commitConflict'] },
         ]}
         edges={[
-          { id: 'a-snap', from: 'a', to: 'snap', label: 'read event' },
-          { id: 'b-snap', from: 'b', to: 'snap', label: 'read event' },
-          { id: 'a-com', from: 'a', to: 'com', label: 'commit', curve: -0.15 },
-          { id: 'com-log', from: 'com', to: 'log', label: 'apply ts=510' },
-          { id: 'b-com', from: 'b', to: 'com', label: 'commit', curve: 0.15 },
-          { id: 'com-retry', from: 'com', to: 'retry', label: 'conflict!' },
+          { id: 'a-snap', from: 'a', to: 'snap', label: 'read event', code: ['db.readSet', 'db.indexRange'] },
+          { id: 'b-snap', from: 'b', to: 'snap', label: 'read event', code: ['db.readSet', 'db.indexRange'] },
+          { id: 'a-com', from: 'a', to: 'com', label: 'commit', curve: -0.15, code: ['db.committer', 'db.writes'] },
+          { id: 'com-log', from: 'com', to: 'log', label: 'apply ts=510', code: ['db.publish', 'persistence.sqliteWrite'] },
+          { id: 'b-com', from: 'b', to: 'com', label: 'commit', curve: 0.15, code: ['db.committer', 'db.occ'] },
+          { id: 'com-retry', from: 'com', to: 'retry', label: 'conflict!', code: ['db.commitConflict', 'application.mutation'] },
         ]}
         steps={[
           { title: 'Both start at the same snapshot', text: 'A and B both begin at ts=500. Each reads the event document and sees remaining = 1. Neither takes a lock; they run truly in parallel in separate isolates.', nodes: ['a', 'b', 'snap'], edges: ['a-snap', 'b-snap'] },

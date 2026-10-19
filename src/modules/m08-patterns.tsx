@@ -216,25 +216,25 @@ const { results, status, loadMore } = usePaginatedQuery(
         title="Hot-document contention vs sharding"
         height={340}
         nodes={[
-          { id: 'm1', label: 'like #1', sub: 'mutation', x: 20, y: 20, w: 140, tone: 'yellow' },
-          { id: 'm2', label: 'like #2', sub: 'mutation', x: 20, y: 130, w: 140, tone: 'yellow' },
-          { id: 'm3', label: 'like #3', sub: 'mutation', x: 20, y: 240, w: 140, tone: 'yellow' },
-          { id: 'hot', label: 'post.likes', sub: 'one hot doc', x: 330, y: 130, tone: 'red' },
-          { id: 's1', label: 'shard 0', sub: 'counter doc', x: 640, y: 20, w: 140, tone: 'purple' },
-          { id: 's2', label: 'shard 1', sub: 'counter doc', x: 640, y: 130, w: 140, tone: 'purple' },
-          { id: 's3', label: 'shard 2', sub: 'counter doc', x: 640, y: 240, w: 140, tone: 'purple' },
-          { id: 'read', label: 'count query', sub: 'sum shards', x: 830, y: 130, w: 150, tone: 'plain' },
+          { id: 'm1', label: 'like #1', sub: 'mutation', x: 20, y: 20, w: 140, tone: 'yellow', code: ['server.dbWriter', 'application.mutation'] },
+          { id: 'm2', label: 'like #2', sub: 'mutation', x: 20, y: 130, w: 140, tone: 'yellow', code: ['server.dbWriter', 'application.mutation'] },
+          { id: 'm3', label: 'like #3', sub: 'mutation', x: 20, y: 240, w: 140, tone: 'yellow', code: ['server.dbWriter', 'application.mutation'] },
+          { id: 'hot', label: 'post.likes', sub: 'one hot doc', x: 330, y: 130, tone: 'red', code: ['db.occ', 'db.commitConflict', 'application.mutation'] },
+          { id: 's1', label: 'shard 0', sub: 'counter doc', x: 640, y: 20, w: 140, tone: 'purple', code: ['db.occ', 'db.readSet'] },
+          { id: 's2', label: 'shard 1', sub: 'counter doc', x: 640, y: 130, w: 140, tone: 'purple', code: ['db.occ', 'db.readSet'] },
+          { id: 's3', label: 'shard 2', sub: 'counter doc', x: 640, y: 240, w: 140, tone: 'purple', code: ['db.occ', 'db.readSet'] },
+          { id: 'read', label: 'count query', sub: 'sum shards', x: 830, y: 130, w: 150, tone: 'plain', code: ['server.dbReader', 'db.readSet'] },
         ]}
         edges={[
-          { id: 'a', from: 'm1', to: 'hot' },
-          { id: 'b', from: 'm2', to: 'hot' },
-          { id: 'c', from: 'm3', to: 'hot' },
-          { id: 'd', from: 'm1', to: 's1', curve: -0.05 },
-          { id: 'e', from: 'm2', to: 's3', curve: 0.1 },
-          { id: 'f', from: 'm3', to: 's2', curve: 0.1 },
-          { id: 'g', from: 's1', to: 'read' },
-          { id: 'h', from: 's2', to: 'read' },
-          { id: 'i', from: 's3', to: 'read' },
+          { id: 'a', from: 'm1', to: 'hot', code: ['db.commitConflict', 'application.mutation'] },
+          { id: 'b', from: 'm2', to: 'hot', code: ['db.commitConflict', 'application.mutation'] },
+          { id: 'c', from: 'm3', to: 'hot', code: ['db.commitConflict', 'application.mutation'] },
+          { id: 'd', from: 'm1', to: 's1', curve: -0.05, code: ['server.dbWriter', 'db.writes'] },
+          { id: 'e', from: 'm2', to: 's3', curve: 0.1, code: ['server.dbWriter', 'db.writes'] },
+          { id: 'f', from: 'm3', to: 's2', curve: 0.1, code: ['server.dbWriter', 'db.writes'] },
+          { id: 'g', from: 's1', to: 'read', code: ['server.dbReader', 'db.indexRange'] },
+          { id: 'h', from: 's2', to: 'read', code: ['server.dbReader', 'db.indexRange'] },
+          { id: 'i', from: 's3', to: 'read', code: ['server.dbReader', 'db.indexRange'] },
         ]}
         steps={[
           { title: 'Naive: read-modify-write one doc', text: "Each like does const p = await ctx.db.get(postId); ctx.db.patch(postId, { likes: p.likes + 1 }). Every mutation reads and writes the same document.", nodes: ['m1', 'm2', 'm3', 'hot'], edges: ['a', 'b', 'c'] },
@@ -337,15 +337,15 @@ export const redeem = mutation({
         title="Widen → migrate → narrow (renaming a field)"
         height={260}
         nodes={[
-          { id: 'w', label: '1. Widen schema', sub: 'v.optional(new field)', x: 20, y: 90, w: 200, tone: 'yellow' },
-          { id: 'c', label: '2. Dual-write code', sub: 'write both shapes', x: 270, y: 90, w: 200, tone: 'plain' },
+          { id: 'w', label: '1. Widen schema', sub: 'v.optional(new field)', x: 20, y: 90, w: 200, tone: 'yellow', code: ['values.validators', 'cli.push'] },
+          { id: 'c', label: '2. Dual-write code', sub: 'write both shapes', x: 270, y: 90, w: 200, tone: 'plain', code: ['server.dbWriter'] },
           { id: 'm', label: '3. Backfill', sub: 'migrations component', x: 520, y: 90, w: 200, tone: 'purple' },
-          { id: 'n', label: '4. Narrow schema', sub: 'drop old field', x: 770, y: 90, w: 210, tone: 'red' },
+          { id: 'n', label: '4. Narrow schema', sub: 'drop old field', x: 770, y: 90, w: 210, tone: 'red', code: ['values.validators', 'cli.push'] },
         ]}
         edges={[
-          { id: 'a', from: 'w', to: 'c', label: 'deploy' },
+          { id: 'a', from: 'w', to: 'c', label: 'deploy', code: ['cli.push'] },
           { id: 'b', from: 'c', to: 'm', label: 'run' },
-          { id: 'd', from: 'm', to: 'n', label: 'verify' },
+          { id: 'd', from: 'm', to: 'n', label: 'verify', code: ['values.validators'] },
         ]}
         steps={[
           { title: 'Widen', text: 'Add the new field as v.optional(...), or make the type a v.union(old, new). The push succeeds because all existing documents still validate.', nodes: ['w'], edges: [] },

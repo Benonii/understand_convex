@@ -145,23 +145,23 @@ function Channel({ id }: { id: Id<"channels"> }) {
         title="useQuery → first result"
         height={430}
         nodes={[
-          { id: 'cmp', label: 'React component', sub: 'useQuery(api.msgs.list, {c})', x: 20, y: 40, w: 210, tone: 'yellow' },
-          { id: 'cli', label: 'BaseConvexClient', sub: 'query set v7 → v8', x: 20, y: 250, w: 210, tone: 'yellow' },
-          { id: 'sw', label: 'Sync worker', sub: 'per connection', x: 330, y: 250, tone: 'purple' },
-          { id: 'cache', label: 'Query cache', sub: 'path+args+identity', x: 330, y: 40, tone: 'plain' },
-          { id: 'fr', label: 'Function runner', sub: 'V8 isolate @ ts', x: 580, y: 250, tone: 'purple' },
-          { id: 'db', label: 'Database', sub: 'indexes @ ts', x: 800, y: 250, w: 170, tone: 'red' },
-          { id: 'sub', label: 'Subscription mgr', sub: 'read set registered', x: 580, y: 40, w: 190, tone: 'red' },
+          { id: 'cmp', label: 'React component', sub: 'useQuery(api.msgs.list, {c})', x: 20, y: 40, w: 210, tone: 'yellow', code: ['client.useQuery', 'client.useSubscription', 'client.useQueries'] },
+          { id: 'cli', label: 'BaseConvexClient', sub: 'query set v7 → v8', x: 20, y: 250, w: 210, tone: 'yellow', code: ['client.base', 'client.localState', 'client.subscribe'] },
+          { id: 'sw', label: 'Sync worker', sub: 'per connection', x: 330, y: 250, tone: 'purple', code: ['sync.worker', 'sync.state', 'sync.wsHandler'] },
+          { id: 'cache', label: 'Query cache', sub: 'path+args+identity', x: 330, y: 40, tone: 'plain', code: ['cache.udf', 'application.query'] },
+          { id: 'fr', label: 'Function runner', sub: 'V8 isolate @ ts', x: 580, y: 250, tone: 'purple', code: ['runner.functionRunner', 'isolate.v8', 'isolate.client'] },
+          { id: 'db', label: 'Database', sub: 'indexes @ ts', x: 800, y: 250, w: 170, tone: 'red', code: ['db.indexRange', 'db.snapshot', 'persistence.sqliteScan'] },
+          { id: 'sub', label: 'Subscription mgr', sub: 'read set registered', x: 580, y: 40, w: 190, tone: 'red', code: ['db.subscriptions', 'db.token'] },
         ]}
         edges={[
-          { id: 'c-cli', from: 'cmp', to: 'cli', label: 'watchQuery' },
-          { id: 'cli-sw', from: 'cli', to: 'sw', label: 'ModifyQuerySet Add{q12}' },
-          { id: 'sw-cache', from: 'sw', to: 'cache', label: 'lookup' },
-          { id: 'sw-fr', from: 'sw', to: 'fr', label: 'run @ ts' },
-          { id: 'fr-db', from: 'fr', to: 'db', label: 'index reads' },
-          { id: 'sw-sub', from: 'sw', to: 'sub', label: 'subscribe(read set)', curve: -0.1 },
-          { id: 'sw-cli', from: 'sw', to: 'cli', label: 'Transition v7→v8', curve: 0.25 },
-          { id: 'cli-c', from: 'cli', to: 'cmp', label: 're-render', curve: 0.25 },
+          { id: 'c-cli', from: 'cmp', to: 'cli', label: 'watchQuery', code: ['client.reactClient', 'client.useQueries'] },
+          { id: 'cli-sw', from: 'cli', to: 'sw', label: 'ModifyQuerySet Add{q12}', code: ['client.localState', 'client.protocol'] },
+          { id: 'sw-cache', from: 'sw', to: 'cache', label: 'lookup', code: ['application.query', 'cache.udf'] },
+          { id: 'sw-fr', from: 'sw', to: 'fr', label: 'run @ ts', code: ['sync.runQuery', 'server.queryCtx'] },
+          { id: 'fr-db', from: 'fr', to: 'db', label: 'index reads', code: ['db.indexRange', 'server.dbReader', 'isolate.syscalls'] },
+          { id: 'sw-sub', from: 'sw', to: 'sub', label: 'subscribe(read set)', curve: -0.1, code: ['db.subscriptions', 'db.readSet'] },
+          { id: 'sw-cli', from: 'sw', to: 'cli', label: 'Transition v7→v8', curve: 0.25, code: ['sync.transition', 'client.protocolServer', 'client.remoteQuerySet'] },
+          { id: 'cli-c', from: 'cli', to: 'cmp', label: 're-render', curve: 0.25, code: ['client.notifyQueryResults', 'client.useSubscription'] },
         ]}
         steps={[
           { title: 'Component mounts', text: 'useQuery returns undefined immediately (loading). ConvexReactClient checks whether an identical (path, args) subscription already exists; if so it just adds a listener and you are done.', nodes: ['cmp', 'cli'], edges: ['c-cli'] },
@@ -185,22 +185,22 @@ function Channel({ id }: { id: Id<"channels"> }) {
         title="One mutation updates every relevant screen"
         height={430}
         nodes={[
-          { id: 'b', label: 'Client B', sub: 'useMutation(send)', x: 20, y: 40, tone: 'purple' },
-          { id: 'com', label: 'Committer', sub: 'commit_ts = 900', x: 260, y: 40, tone: 'red' },
-          { id: 'log', label: 'Write log', sub: 'msgs.by_channel[c]', x: 500, y: 40, tone: 'red' },
-          { id: 'sub', label: 'Subscription mgr', sub: 'range overlap?', x: 760, y: 40, w: 200, tone: 'red' },
-          { id: 'swA', label: 'Sync worker A', sub: 'q12 invalidated', x: 760, y: 250, w: 200, tone: 'purple' },
-          { id: 'fr', label: 'Function runner', sub: 're-run q12 @ 900', x: 500, y: 250, tone: 'purple' },
-          { id: 'a', label: 'Client A', sub: 'useQuery(list,{c})', x: 20, y: 250, tone: 'yellow' },
+          { id: 'b', label: 'Client B', sub: 'useMutation(send)', x: 20, y: 40, tone: 'purple', code: ['client.enqueueMutation', 'client.protocol'] },
+          { id: 'com', label: 'Committer', sub: 'commit_ts = 900', x: 260, y: 40, tone: 'red', code: ['db.committer', 'db.occ', 'db.nextCommitTs'] },
+          { id: 'log', label: 'Write log', sub: 'msgs.by_channel[c]', x: 500, y: 40, tone: 'red', code: ['db.writeLog', 'db.publish'] },
+          { id: 'sub', label: 'Subscription mgr', sub: 'range overlap?', x: 760, y: 40, w: 200, tone: 'red', code: ['db.subscriptions', 'db.subscriptionMatch'] },
+          { id: 'swA', label: 'Sync worker A', sub: 'q12 invalidated', x: 760, y: 250, w: 200, tone: 'purple', code: ['sync.worker', 'sync.beginUpdate'] },
+          { id: 'fr', label: 'Function runner', sub: 're-run q12 @ 900', x: 500, y: 250, tone: 'purple', code: ['sync.runQuery', 'runner.functionRunner', 'cache.udf'] },
+          { id: 'a', label: 'Client A', sub: 'useQuery(list,{c})', x: 20, y: 250, tone: 'yellow', code: ['client.useQuery', 'client.reactClient'] },
         ]}
         edges={[
-          { id: 'b-com', from: 'b', to: 'com', label: 'Mutation' },
-          { id: 'com-log', from: 'com', to: 'log', label: 'append' },
-          { id: 'log-sub', from: 'log', to: 'sub', label: 'new writes' },
-          { id: 'sub-sw', from: 'sub', to: 'swA', label: 'invalidate' },
-          { id: 'sw-fr', from: 'swA', to: 'fr', label: 're-execute' },
-          { id: 'fr-a', from: 'fr', to: 'a', label: 'Transition (QueryUpdated)', curve: 0 },
-          { id: 'com-b', from: 'com', to: 'b', label: 'MutationResponse ts=900', curve: 0.3 },
+          { id: 'b-com', from: 'b', to: 'com', label: 'Mutation', code: ['sync.mutation', 'application.mutation', 'client.protocol'] },
+          { id: 'com-log', from: 'com', to: 'log', label: 'append', code: ['db.publish', 'db.writeLog'] },
+          { id: 'log-sub', from: 'log', to: 'sub', label: 'new writes', code: ['db.subscriptions', 'db.writeLog'] },
+          { id: 'sub-sw', from: 'sub', to: 'swA', label: 'invalidate', code: ['db.subscriptionMatch', 'sync.worker'] },
+          { id: 'sw-fr', from: 'swA', to: 'fr', label: 're-execute', code: ['sync.runQuery', 'sync.beginUpdate'] },
+          { id: 'fr-a', from: 'fr', to: 'a', label: 'Transition (QueryUpdated)', curve: 0, code: ['sync.transition', 'client.remoteQuerySet'] },
+          { id: 'com-b', from: 'com', to: 'b', label: 'MutationResponse ts=900', curve: 0.3, code: ['sync.mutation', 'client.requestManager', 'client.protocolServer'] },
         ]}
         steps={[
           { title: 'A mutation commits', text: 'Client B calls send({channel: c, body}). The mutation runs, passes OCC validation, and is committed at ts=900. It inserted a doc whose index entries include messages.by_channel = (c, _creationTime, _id).', nodes: ['b', 'com'], edges: ['b-com'] },
@@ -304,20 +304,20 @@ const send = useMutation(api.messages.send).withOptimisticUpdate(
         title="Optimistic update lifecycle"
         height={400}
         nodes={[
-          { id: 'ui', label: 'UI', sub: 'shows messages', x: 20, y: 160, tone: 'yellow' },
-          { id: 'opt', label: 'Optimistic layer', sub: 'pending: send#41', x: 270, y: 40, w: 190, tone: 'yellow' },
-          { id: 'srv', label: 'Server results', sub: 'q12 @ ts', x: 270, y: 280, w: 190, tone: 'purple' },
-          { id: 'ws', label: 'WebSocket', sub: 'Mutation req 41', x: 540, y: 160, tone: 'plain' },
-          { id: 'be', label: 'Backend', sub: 'commit ts=900', x: 790, y: 160, tone: 'red' },
+          { id: 'ui', label: 'UI', sub: 'shows messages', x: 20, y: 160, tone: 'yellow', code: ['client.useSubscription', 'client.notifyQueryResults'] },
+          { id: 'opt', label: 'Optimistic layer', sub: 'pending: send#41', x: 270, y: 40, w: 190, tone: 'yellow', code: ['client.optimistic', 'client.enqueueMutation'] },
+          { id: 'srv', label: 'Server results', sub: 'q12 @ ts', x: 270, y: 280, w: 190, tone: 'purple', code: ['client.remoteQuerySet', 'client.notifyQueryResults'] },
+          { id: 'ws', label: 'WebSocket', sub: 'Mutation req 41', x: 540, y: 160, tone: 'plain', code: ['client.websocket', 'client.reconnect', 'client.onOpen'] },
+          { id: 'be', label: 'Backend', sub: 'commit ts=900', x: 790, y: 160, tone: 'red', code: ['sync.mutation', 'application.mutation', 'db.committer'] },
         ]}
         edges={[
-          { id: 'ui-opt', from: 'ui', to: 'opt', label: 'apply update' },
-          { id: 'opt-ui', from: 'opt', to: 'ui', label: 'instant render', curve: 0.2 },
-          { id: 'ui-ws', from: 'opt', to: 'ws', label: 'send' },
-          { id: 'ws-be', from: 'ws', to: 'be', label: 'Mutation' },
-          { id: 'be-ws', from: 'be', to: 'ws', label: 'Response + Transition', curve: 0.25 },
-          { id: 'ws-srv', from: 'ws', to: 'srv', label: 'apply ts=900' },
-          { id: 'srv-ui', from: 'srv', to: 'ui', label: 'authoritative', curve: -0.2 },
+          { id: 'ui-opt', from: 'ui', to: 'opt', label: 'apply update', code: ['client.enqueueMutation', 'client.optimistic'] },
+          { id: 'opt-ui', from: 'opt', to: 'ui', label: 'instant render', curve: 0.2, code: ['client.notifyQueryResults', 'client.optimistic'] },
+          { id: 'ui-ws', from: 'opt', to: 'ws', label: 'send', code: ['client.enqueueMutation', 'client.protocol'] },
+          { id: 'ws-be', from: 'ws', to: 'be', label: 'Mutation', code: ['sync.mutation', 'client.protocol'] },
+          { id: 'be-ws', from: 'be', to: 'ws', label: 'Response + Transition', curve: 0.25, code: ['client.requestManager', 'sync.transition', 'client.protocolServer'] },
+          { id: 'ws-srv', from: 'ws', to: 'srv', label: 'apply ts=900', code: ['client.remoteQuerySet', 'client.requestManager'] },
+          { id: 'srv-ui', from: 'srv', to: 'ui', label: 'authoritative', curve: -0.2, code: ['client.notifyQueryResults', 'client.optimistic'] },
         ]}
         steps={[
           { title: 'Call the mutation', text: 'The client runs your optimistic update function against a local store view of current query results and records the patch as a layer tagged with the mutation\'s requestId.', nodes: ['ui', 'opt'], edges: ['ui-opt'] },

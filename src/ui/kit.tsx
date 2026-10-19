@@ -10,6 +10,12 @@ export function buildPrompt(path: string[], body: string) {
   return `I'm studying Convex. Explain this part in more depth, check my understanding, and give me an example:\n\n[${path.join(' › ')}]\n\n${body.trim()}\n`;
 }
 
+/* Code drawer bus: diagrams call openCode(ids); <CodeDrawer/> listens. */
+type CodeReq = { ids: string[]; context: string };
+let codeOpener: ((r: CodeReq) => void) | null = null;
+export function registerCodeOpener(f: ((r: CodeReq) => void) | null) { codeOpener = f; }
+export function openCode(ids: string[], context: string) { codeOpener?.({ ids, context }); }
+
 let toastSetter: ((s: string | null) => void) | null = null;
 export function Toaster() {
   const [msg, setMsg] = useState<string | null>(null);
@@ -142,7 +148,9 @@ export function Compare({ head, rows, caption }: { head: string[]; rows: React.R
 /* ------------------------------------------------------------------ */
 
 const KW = /\b(import|from|export|const|let|var|async|await|return|function|if|else|for|of|in|new|throw|try|catch|default|type|interface|extends|as|while|break|continue|null|undefined|true|false|typeof)\b/;
-function highlight(code: string) {
+const RUST_KW = /\b(fn|pub|impl|struct|enum|match|let|mut|self|Self|use|mod|async|await|where|trait|crate|super|dyn|move|ref|loop|unsafe|const|static|type|return|if|else|for|in|while|break|continue|true|false|Some|None|Ok|Err)\b/;
+export function highlight(code: string, lang = 'ts') {
+  const kw = lang === 'rust' ? RUST_KW : KW;
   const re = /(\/\/[^\n]*|\/\*[\s\S]*?\*\/)|(`(?:\\.|[^`])*`|"(?:\\.|[^"])*"|'(?:\\.|[^'])*')|\b(\d[\d_.]*)\b|([A-Za-z_$][\w$]*)(?=\s*\()|([A-Za-z_$][\w$]*)/g;
   const out: React.ReactNode[] = [];
   let last = 0;
@@ -154,8 +162,8 @@ function highlight(code: string) {
     if (com) out.push(<span key={k++} className="tk-com">{tok}</span>);
     else if (str) out.push(<span key={k++} className="tk-str">{tok}</span>);
     else if (num) out.push(<span key={k++} className="tk-num">{tok}</span>);
-    else if (fn) out.push(<span key={k++} className={KW.test(tok) ? 'tk-kw' : 'tk-fn'}>{tok}</span>);
-    else if (id) out.push(KW.test(tok) && tok.match(KW)![0] === tok ? <span key={k++} className="tk-kw">{tok}</span> : /^(ctx|db|v|api|internal)$/.test(tok) ? <span key={k++} className="tk-ctx">{tok}</span> : tok);
+    else if (fn) out.push(<span key={k++} className={kw.test(tok) && tok.match(kw)![0] === tok ? 'tk-kw' : 'tk-fn'}>{tok}</span>);
+    else if (id) out.push(kw.test(tok) && tok.match(kw)![0] === tok ? <span key={k++} className="tk-kw">{tok}</span> : /^(ctx|db|v|api|internal)$/.test(tok) ? <span key={k++} className="tk-ctx">{tok}</span> : tok);
     last = m.index + tok.length;
   }
   if (last < code.length) out.push(code.slice(last));
@@ -165,7 +173,7 @@ function highlight(code: string) {
 export function Code({ code, title, lang = 'ts', note }: { code: string; title?: string; lang?: string; note?: React.ReactNode }) {
   const mod = useContext(ModuleCtx);
   const body = code.replace(/^\n/, '').replace(/\s+$/, '');
-  const hl = useMemo(() => highlight(body), [body]);
+  const hl = useMemo(() => highlight(body, lang), [body, lang]);
   return (
     <figure className="code">
       <figcaption>
@@ -185,8 +193,8 @@ export function Code({ code, title, lang = 'ts', note }: { code: string; title?:
 /* Animated flow diagrams                                              */
 /* ------------------------------------------------------------------ */
 
-export type FlowNode = { id: string; label: string; sub?: string; x: number; y: number; w?: number; h?: number; tone?: 'yellow' | 'red' | 'purple' | 'plain' };
-export type FlowEdge = { id: string; from: string; to: string; label?: string; curve?: number };
+export type FlowNode = { id: string; label: string; sub?: string; x: number; y: number; w?: number; h?: number; tone?: 'yellow' | 'red' | 'purple' | 'plain'; code?: string[] };
+export type FlowEdge = { id: string; from: string; to: string; label?: string; curve?: number; code?: string[] };
 export type FlowStep = { title: string; text: string; nodes?: string[]; edges?: string[] };
 
 function center(n: FlowNode) {
@@ -219,14 +227,55 @@ export function Flow({ title, nodes, edges, steps, height = 420, caption }: { ti
     return () => clearTimeout(t);
   }, [playing, i, steps.length]);
 
-  const paths = edges.map((e) => {
-    const a = byId[e.from], b = byId[e.to];
-    const ca = center(a), cb = center(b);
-    const p1 = edgePoint(a, cb.cx, cb.cy), p2 = edgePoint(b, ca.cx, ca.cy);
-    const curve = e.curve ?? 0;
-    const mx = (p1.x + p2.x) / 2 - (p2.y - p1.y) * curve, my = (p1.y + p2.y) / 2 + (p2.x - p1.x) * curve;
-    return { e, d: `M${p1.x},${p1.y} Q${mx},${my} ${p2.x},${p2.y}`, mx, my };
-  });
+  const paths = useMemo(() => {
+    type Box = { x0: number; y0: number; x1: number; y1: number };
+    const hit = (a: Box, b: Box) => a.x0 < b.x1 && b.x0 < a.x1 && a.y0 < b.y1 && b.y0 < a.y1;
+    const nodeBoxes: Box[] = nodes.map((n) => { const { w, h } = center(n); return { x0: n.x - 3, y0: n.y - 3, x1: n.x + w + 3, y1: n.y + h + 3 }; });
+    const placed: Box[] = [];
+    const LABEL_CH = 6.9; // JetBrains Mono at 11.5px
+    return edges.map((e) => {
+      const a = byId[e.from], b = byId[e.to];
+      const ca = center(a), cb = center(b);
+      const p1 = edgePoint(a, cb.cx, cb.cy), p2 = edgePoint(b, ca.cx, ca.cy);
+      // Edges that run both ways between the same pair bow apart automatically.
+      const reverse = edges.some((o) => o.from === e.to && o.to === e.from);
+      const curve = e.curve ?? (reverse ? 0.14 : 0);
+      const mx = (p1.x + p2.x) / 2 - (p2.y - p1.y) * curve, my = (p1.y + p2.y) / 2 + (p2.x - p1.x) * curve;
+      const at = (t: number) => ({
+        x: (1 - t) * (1 - t) * p1.x + 2 * (1 - t) * t * mx + t * t * p2.x,
+        y: (1 - t) * (1 - t) * p1.y + 2 * (1 - t) * t * my + t * t * p2.y,
+      });
+      const dx = p2.x - p1.x, dy = p2.y - p1.y, len = Math.hypot(dx, dy) || 1;
+      let nx = -dy / len, ny = dx / len;
+      if (curve < 0 || (curve === 0 && ny > 0)) { nx = -nx; ny = -ny; }
+      const text = (e.label ?? '') + (e.code?.length ? (e.label ? ' </>' : '</>') : '');
+      const tw = text.length * LABEL_CH, th = 15;
+      // Try positions along the curve and on both sides; keep the first that
+      // clears every node box and every label already placed.
+      let best: { lx: number; ly: number; anchor: 'start' | 'middle' | 'end'; score: number } | null = null;
+      for (const t of [0.5, 0.38, 0.62, 0.28, 0.72]) {
+        for (const side of [1, -1]) {
+          for (const off of [12, 22, 34, 46, 58]) {
+            const q = at(t);
+            const sx = nx * side, sy = ny * side;
+            const lx = q.x + sx * off, ly = q.y + sy * off;
+            const anchor = sx > 0.35 ? 'start' : sx < -0.35 ? 'end' : 'middle';
+            const x0 = anchor === 'start' ? lx : anchor === 'end' ? lx - tw : lx - tw / 2;
+            const box = { x0: x0 - 3, y0: ly - th / 2, x1: x0 + tw + 3, y1: ly + th / 2 };
+            const score = nodeBoxes.filter((nb) => hit(box, nb)).length * 10 + placed.filter((pb) => hit(box, pb)).length * 10
+              + (box.x0 < 0 || box.x1 > 1000 || box.y0 < 0 || box.y1 > height ? 5 : 0) + Math.abs(t - 0.5) + (side < 0 ? 0.3 : 0) + off / 60;
+            if (!best || score < best.score) best = { lx, ly, anchor, score };
+          }
+        }
+      }
+      const { lx, ly, anchor } = best!;
+      if (text) {
+        const x0 = anchor === 'start' ? lx : anchor === 'end' ? lx - tw : lx - tw / 2;
+        placed.push({ x0: x0 - 3, y0: ly - th / 2, x1: x0 + tw + 3, y1: ly + th / 2 });
+      }
+      return { e, d: `M${p1.x},${p1.y} Q${mx},${my} ${p2.x},${p2.y}`, lx, ly, anchor };
+    });
+  }, [edges, nodes, byId, height]);
 
   const describe = () =>
     `Diagram: ${title}\nComponents: ${nodes.map((n) => n.label + (n.sub ? ` (${n.sub})` : '')).join(', ')}\n\n` +
@@ -252,28 +301,35 @@ export function Flow({ title, nodes, edges, steps, height = 420, caption }: { ti
               <path d="M0,0 L10,5 L0,10 z" className="arrow-head on" />
             </marker>
           </defs>
-          {paths.map(({ e, d, mx, my }) => {
+          {paths.map(({ e, d, lx, ly, anchor }) => {
             const on = step.edges?.includes(e.id);
+            const hasCode = !!e.code?.length;
             return (
-              <g key={e.id} className={`edge ${on ? 'on' : ''}`}>
+              <g key={e.id} className={`edge ${on ? 'on' : ''} ${hasCode ? 'has-code' : ''}`} onClick={hasCode ? () => openCode(e.code!, `${title}: ${e.label ?? e.from + ' → ' + e.to}`) : undefined}>
+                {hasCode && <path d={d} className="edge-hit"><title>Show the code for this hop</title></path>}
                 <path id={`p-${title}-${e.id}`.replace(/\W/g, '')} d={d} markerEnd={`url(#${on ? 'arrow-on' : 'arrow'})`} />
                 {on && (
                   <circle r="6" className="packet">
                     <animateMotion dur="1.6s" repeatCount="indefinite" path={d} />
                   </circle>
                 )}
-                {e.label && <text x={mx} y={my - 8} className="edge-label" textAnchor="middle">{e.label}</text>}
+                {(e.label || hasCode) && <text x={lx} y={ly} className="edge-label" textAnchor={anchor} dominantBaseline="middle">{e.label}{hasCode && <tspan className="code-mark">{e.label ? ' ' : ''}{'</>'}</tspan>}</text>}
               </g>
             );
           })}
           {nodes.map((n) => {
             const { w, h } = center(n);
             const on = step.nodes?.includes(n.id);
+            const hasCode = !!n.code?.length;
             return (
-              <g key={n.id} className={`node tone-${n.tone ?? 'plain'} ${on ? 'on' : ''}`} transform={`translate(${n.x},${n.y})`}>
+              <g key={n.id} className={`node tone-${n.tone ?? 'plain'} ${on ? 'on' : ''} ${hasCode ? 'has-code' : ''}`} transform={`translate(${n.x},${n.y})`}
+                onClick={hasCode ? () => openCode(n.code!, `${title}: ${n.label}`) : undefined}
+                onKeyDown={hasCode ? (ev) => { if (ev.key === 'Enter' || ev.key === ' ') { ev.preventDefault(); openCode(n.code!, `${title}: ${n.label}`); } } : undefined}
+                tabIndex={hasCode ? 0 : undefined} role={hasCode ? 'button' : undefined} aria-label={hasCode ? `Show source for ${n.label}` : undefined}>
                 <rect width={w} height={h} rx="12" />
-                <text x={w / 2} y={n.sub ? h / 2 - 4 : h / 2 + 5} textAnchor="middle" className="node-label">{n.label}</text>
-                {n.sub && <text x={w / 2} y={h / 2 + 15} textAnchor="middle" className="node-sub">{n.sub}</text>}
+                {hasCode && <g className="code-badge" transform={`translate(${w - 30},-9)`}><rect width="34" height="18" rx="9" /><text x="17" y="12.5" textAnchor="middle">{'</>'}</text></g>}
+                <text x={w / 2} y={n.sub ? h / 2 - 4 : h / 2 + 5} textAnchor="middle" className="node-label" {...fit(n.label, 8.4, w)}>{n.label}</text>
+                {n.sub && <text x={w / 2} y={h / 2 + 15} textAnchor="middle" className="node-sub" {...fit(n.sub, 6.95, w)}>{n.sub}</text>}
               </g>
             );
           })}
@@ -292,9 +348,17 @@ export function Flow({ title, nodes, edges, steps, height = 420, caption }: { ti
           <p>{step.text}</p>
         </div>
       </div>
+      {(nodes.some((n) => n.code?.length) || edges.some((e) => e.code?.length)) && (
+        <div className="flow-caption code-hint"><span className="code-mark">{'</>'}</span> Click a marked box or arrow to read the real Convex source behind it.</div>
+      )}
       {caption && <div className="flow-caption">{caption}</div>}
     </figure>
   );
+}
+
+/** Squeeze text that would overflow its node box. */
+function fit(text: string, ch: number, w: number) {
+  return text.length * ch > w - 14 ? { textLength: w - 14, lengthAdjust: 'spacingAndGlyphs' as const } : {};
 }
 
 /** Static SVG diagram frame (draw your own SVG as children, viewBox 0 0 1000 H). */

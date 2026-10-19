@@ -107,15 +107,15 @@ export const purgeDone = internalMutation({
         title="Why determinism unlocks caching, retries and subscriptions"
         height={330}
         nodes={[
-          { id: 'det', label: 'Deterministic fn', sub: 'f(args, identity, snapshot)', x: 400, y: 20, w: 200, tone: 'purple' },
-          { id: 'cache', label: 'Query cache', sub: 'memoize by key + read set', x: 40, y: 220, tone: 'yellow' },
-          { id: 'occ', label: 'OCC retries', sub: 'replay is safe', x: 415, y: 220, tone: 'red' },
-          { id: 'sub', label: 'Subscriptions', sub: 're-run = new truth', x: 790, y: 220, tone: 'yellow' },
+          { id: 'det', label: 'Deterministic fn', sub: 'f(args, identity, snapshot)', x: 400, y: 20, w: 200, tone: 'purple', code: ['isolate.determinism', 'isolate.environment'] },
+          { id: 'cache', label: 'Query cache', sub: 'memoize by key + read set', x: 40, y: 220, tone: 'yellow', code: ['cache.udf', 'application.query'] },
+          { id: 'occ', label: 'OCC retries', sub: 'replay is safe', x: 415, y: 220, tone: 'red', code: ['application.mutation', 'db.occ'] },
+          { id: 'sub', label: 'Subscriptions', sub: 're-run = new truth', x: 790, y: 220, tone: 'yellow', code: ['db.subscriptions', 'sync.runQuery'] },
         ]}
         edges={[
-          { id: 'd-c', from: 'det', to: 'cache' },
-          { id: 'd-o', from: 'det', to: 'occ' },
-          { id: 'd-s', from: 'det', to: 'sub' },
+          { id: 'd-c', from: 'det', to: 'cache', code: ['cache.udf'] },
+          { id: 'd-o', from: 'det', to: 'occ', code: ['application.mutation'] },
+          { id: 'd-s', from: 'det', to: 'sub', code: ['db.subscriptionMatch', 'sync.runQuery'] },
         ]}
         steps={[
           { title: 'A pure function of three inputs', text: 'The output depends only on args, the auth identity, and the DB snapshot at timestamp T. Time and randomness are pinned, and there is no network.', nodes: ['det'] },
@@ -202,20 +202,20 @@ export const summarize = action({
         title="The canonical pattern: mutation → scheduler → action → mutation"
         height={340}
         nodes={[
-          { id: 'cl', label: 'Client', sub: 'useMutation', x: 20, y: 140, w: 130 },
-          { id: 'm1', label: 'mutation', sub: 'insert {status:"pending"}', x: 190, y: 140, tone: 'red' },
-          { id: 'sch', label: 'Scheduler', sub: '_scheduled_functions', x: 400, y: 20, tone: 'yellow' },
-          { id: 'act', label: 'action', sub: 'fetch Stripe/OpenAI', x: 600, y: 140, tone: 'purple' },
-          { id: 'm2', label: 'internalMutation', sub: 'patch {status:"done"}', x: 810, y: 140, w: 170, tone: 'red' },
-          { id: 'q', label: 'useQuery', sub: 'sees status change', x: 400, y: 260 },
+          { id: 'cl', label: 'Client', sub: 'useMutation', x: 20, y: 140, w: 130, code: ['client.enqueueMutation', 'client.requestManager'] },
+          { id: 'm1', label: 'mutation', sub: 'insert {status:"pending"}', x: 190, y: 140, tone: 'red', code: ['server.registration', 'server.dbWriter'] },
+          { id: 'sch', label: 'Scheduler', sub: '_scheduled_functions', x: 400, y: 20, tone: 'yellow', code: ['server.scheduler', 'scheduler.action'] },
+          { id: 'act', label: 'action', sub: 'fetch Stripe/OpenAI', x: 600, y: 140, tone: 'purple', code: ['server.actionCtx', 'node.executor'] },
+          { id: 'm2', label: 'internalMutation', sub: 'patch {status:"done"}', x: 810, y: 140, w: 170, tone: 'red', code: ['server.runUdf', 'server.registration'] },
+          { id: 'q', label: 'useQuery', sub: 'sees status change', x: 400, y: 260, code: ['client.useQuery', 'client.useSubscription'] },
         ]}
         edges={[
-          { id: 'c-m1', from: 'cl', to: 'm1' },
-          { id: 'm1-s', from: 'm1', to: 'sch', label: 'runAfter(0)' },
-          { id: 's-a', from: 'sch', to: 'act' },
-          { id: 'a-m2', from: 'act', to: 'm2', label: 'runMutation' },
-          { id: 'm2-q', from: 'm2', to: 'q', label: 'invalidate', curve: -0.15 },
-          { id: 'm1-q', from: 'm1', to: 'q', label: 'pending', curve: 0.15 },
+          { id: 'c-m1', from: 'cl', to: 'm1', code: ['client.enqueueMutation', 'sync.mutation'] },
+          { id: 'm1-s', from: 'm1', to: 'sch', label: 'runAfter(0)', code: ['server.scheduler'] },
+          { id: 's-a', from: 'sch', to: 'act', code: ['scheduler.action'] },
+          { id: 'a-m2', from: 'act', to: 'm2', label: 'runMutation', code: ['server.runUdf'] },
+          { id: 'm2-q', from: 'm2', to: 'q', label: 'invalidate', curve: -0.15, code: ['db.subscriptionMatch', 'sync.transition'] },
+          { id: 'm1-q', from: 'm1', to: 'q', label: 'pending', curve: 0.15, code: ['db.subscriptionMatch', 'sync.transition'] },
         ]}
         steps={[
           { title: 'Client calls a mutation, not the action', text: 'The client intent ("generate summary") is recorded transactionally first. Calling the action directly from the client would lose the intent if the tab closed.', nodes: ['cl', 'm1'], edges: ['c-m1'] },

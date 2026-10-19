@@ -125,24 +125,24 @@ export const expire = internalMutation({
         title="Mutation → scheduled action → mutation (the canonical pipeline)"
         height={400}
         nodes={[
-          { id: 'client', label: 'Client', sub: 'useMutation', x: 20, y: 40, tone: 'plain' },
-          { id: 'mut', label: 'placeOrder', sub: 'mutation (txn)', x: 300, y: 40, tone: 'yellow' },
-          { id: 'sched', label: '_scheduled_functions', sub: 'system table', x: 600, y: 40, w: 200, tone: 'purple' },
-          { id: 'exec', label: 'Scheduler', sub: 'executor loop', x: 620, y: 180, tone: 'plain' },
-          { id: 'act', label: 'chargeCard', sub: 'action (side effects)', x: 300, y: 180, tone: 'red' },
+          { id: 'client', label: 'Client', sub: 'useMutation', x: 20, y: 40, tone: 'plain', code: ['client.enqueueMutation', 'client.protocol'] },
+          { id: 'mut', label: 'placeOrder', sub: 'mutation (txn)', x: 300, y: 40, tone: 'yellow', code: ['server.registration', 'application.mutation'] },
+          { id: 'sched', label: '_scheduled_functions', sub: 'system table', x: 600, y: 40, w: 200, tone: 'purple', code: ['server.scheduler', 'scheduler.mutation'] },
+          { id: 'exec', label: 'Scheduler', sub: 'executor loop', x: 620, y: 180, tone: 'plain', code: ['scheduler.action', 'scheduler.mutation'] },
+          { id: 'act', label: 'chargeCard', sub: 'action (side effects)', x: 300, y: 180, tone: 'red', code: ['server.actionCtx', 'node.executor'] },
           { id: 'ext', label: 'Stripe API', sub: 'fetch', x: 20, y: 180, tone: 'plain' },
-          { id: 'mut2', label: 'markPaid', sub: 'internalMutation', x: 300, y: 310, tone: 'yellow' },
-          { id: 'db', label: 'orders table', sub: 'reactive', x: 620, y: 310, tone: 'purple' },
+          { id: 'mut2', label: 'markPaid', sub: 'internalMutation', x: 300, y: 310, tone: 'yellow', code: ['server.registration', 'scheduler.mutation'] },
+          { id: 'db', label: 'orders table', sub: 'reactive', x: 620, y: 310, tone: 'purple', code: ['db.subscriptions', 'persistence.sqlite'] },
         ]}
         edges={[
-          { id: 'c-m', from: 'client', to: 'mut', label: 'mutation' },
-          { id: 'm-s', from: 'mut', to: 'sched', label: 'insert job' },
-          { id: 's-e', from: 'sched', to: 'exec', label: 'due?' },
-          { id: 'e-a', from: 'exec', to: 'act', label: 'run' },
+          { id: 'c-m', from: 'client', to: 'mut', label: 'mutation', code: ['client.enqueueMutation', 'sync.mutation'] },
+          { id: 'm-s', from: 'mut', to: 'sched', label: 'insert job', code: ['server.scheduler', 'db.writes'] },
+          { id: 's-e', from: 'sched', to: 'exec', label: 'due?', code: ['scheduler.action', 'scheduler.mutation'] },
+          { id: 'e-a', from: 'exec', to: 'act', label: 'run', code: ['scheduler.action', 'server.actionCtx'] },
           { id: 'a-x', from: 'act', to: 'ext', label: 'HTTP' },
-          { id: 'a-m2', from: 'act', to: 'mut2', label: 'runMutation' },
-          { id: 'm2-db', from: 'mut2', to: 'db', label: 'patch' },
-          { id: 'db-c', from: 'db', to: 'client', label: 'subscription push', curve: -0.25 },
+          { id: 'a-m2', from: 'act', to: 'mut2', label: 'runMutation', code: ['server.runUdf', 'server.actionCtx'] },
+          { id: 'm2-db', from: 'mut2', to: 'db', label: 'patch', code: ['server.dbWriter', 'db.writes'] },
+          { id: 'db-c', from: 'db', to: 'client', label: 'subscription push', curve: -0.25, code: ['db.subscriptions', 'sync.transition', 'client.remoteQuerySet'] },
         ]}
         steps={[
           { title: 'Client calls a mutation', text: 'The client sends placeOrder over the WebSocket. The mutation runs in a V8 isolate inside a serializable transaction.', nodes: ['client', 'mut'], edges: ['c-m'] },
@@ -213,18 +213,18 @@ export default crons;
         height={360}
         nodes={[
           { id: 'b', label: 'Browser', sub: 'File input', x: 20, y: 140, tone: 'plain' },
-          { id: 'gen', label: 'generateUploadUrl', sub: 'mutation', x: 330, y: 20, w: 200, tone: 'yellow' },
-          { id: 'blob', label: 'Blob storage', sub: 'upload endpoint', x: 330, y: 150, w: 200, tone: 'red' },
-          { id: 'meta', label: '_storage', sub: 'system table', x: 700, y: 150, tone: 'purple' },
-          { id: 'save', label: 'saveMessage', sub: 'mutation', x: 330, y: 280, w: 200, tone: 'yellow' },
-          { id: 'tbl', label: 'messages', sub: '{ storageId }', x: 700, y: 280, tone: 'purple' },
+          { id: 'gen', label: 'generateUploadUrl', sub: 'mutation', x: 330, y: 20, w: 200, tone: 'yellow', code: ['storage.files', 'server.storage'] },
+          { id: 'blob', label: 'Blob storage', sub: 'upload endpoint', x: 330, y: 150, w: 200, tone: 'red', code: ['storage.files'] },
+          { id: 'meta', label: '_storage', sub: 'system table', x: 700, y: 150, tone: 'purple', code: ['storage.files', 'server.storage'] },
+          { id: 'save', label: 'saveMessage', sub: 'mutation', x: 330, y: 280, w: 200, tone: 'yellow', code: ['server.dbWriter', 'server.registration'] },
+          { id: 'tbl', label: 'messages', sub: '{ storageId }', x: 700, y: 280, tone: 'purple', code: ['server.dbWriter', 'value.id'] },
         ]}
         edges={[
-          { id: 'b-g', from: 'b', to: 'gen', label: '1. ask URL' },
-          { id: 'b-bl', from: 'b', to: 'blob', label: '2. POST bytes' },
-          { id: 'bl-m', from: 'blob', to: 'meta', label: 'record' },
-          { id: 'b-s', from: 'b', to: 'save', label: '3. save id' },
-          { id: 's-t', from: 'save', to: 'tbl', label: 'insert' },
+          { id: 'b-g', from: 'b', to: 'gen', label: '1. ask URL', code: ['server.storage', 'client.enqueueMutation'] },
+          { id: 'b-bl', from: 'b', to: 'blob', label: '2. POST bytes', code: ['storage.files', 'http.actions'] },
+          { id: 'bl-m', from: 'blob', to: 'meta', label: 'record', code: ['storage.files'] },
+          { id: 'b-s', from: 'b', to: 'save', label: '3. save id', code: ['client.enqueueMutation', 'values.validators'] },
+          { id: 's-t', from: 'save', to: 'tbl', label: 'insert', code: ['server.dbWriter', 'db.writes'] },
         ]}
         steps={[
           { title: 'Ask for an upload URL', text: 'A mutation calls ctx.storage.generateUploadUrl() and returns a short-lived signed URL (it expires after about an hour). Put your auth check here: this is where you decide who may upload.', nodes: ['b', 'gen'], edges: ['b-g'] },
@@ -479,19 +479,19 @@ export default http;
         height={300}
         nodes={[
           { id: 'ext', label: 'Stripe / GitHub', sub: 'webhook sender', x: 20, y: 40, tone: 'plain' },
-          { id: 'site', label: '*.convex.site', sub: 'httpRouter', x: 280, y: 40, tone: 'plain' },
-          { id: 'ha', label: 'httpAction', sub: 'verify signature', x: 540, y: 40, tone: 'red' },
-          { id: 'mut', label: 'internalMutation', sub: 'idempotent upsert', x: 800, y: 40, w: 180, tone: 'yellow' },
-          { id: 'tbl', label: 'payments table', sub: 'transaction log', x: 800, y: 200, w: 180, tone: 'purple' },
-          { id: 'ui', label: 'Dashboard', sub: 'useQuery', x: 280, y: 200, tone: 'plain' },
+          { id: 'site', label: '*.convex.site', sub: 'httpRouter', x: 280, y: 40, tone: 'plain', code: ['http.actions', 'local_backend.router'] },
+          { id: 'ha', label: 'httpAction', sub: 'verify signature', x: 540, y: 40, tone: 'red', code: ['http.actions'] },
+          { id: 'mut', label: 'internalMutation', sub: 'idempotent upsert', x: 800, y: 40, w: 180, tone: 'yellow', code: ['server.registration', 'application.mutation'] },
+          { id: 'tbl', label: 'payments table', sub: 'transaction log', x: 800, y: 200, w: 180, tone: 'purple', code: ['db.committer', 'persistence.sqliteWrite'] },
+          { id: 'ui', label: 'Dashboard', sub: 'useQuery', x: 280, y: 200, tone: 'plain', code: ['client.useQuery', 'client.useSubscription'] },
         ]}
         edges={[
-          { id: 'e-s', from: 'ext', to: 'site', label: 'POST' },
-          { id: 's-h', from: 'site', to: 'ha', label: 'route' },
-          { id: 'h-m', from: 'ha', to: 'mut', label: 'runMutation' },
-          { id: 'm-t', from: 'mut', to: 'tbl', label: 'commit' },
-          { id: 't-u', from: 'tbl', to: 'ui', label: 'push' },
-          { id: 'h-e', from: 'ha', to: 'ext', label: '200 OK', curve: 0.3 },
+          { id: 'e-s', from: 'ext', to: 'site', label: 'POST', code: ['local_backend.router', 'http.actions'] },
+          { id: 's-h', from: 'site', to: 'ha', label: 'route', code: ['http.actions', 'local_backend.router'] },
+          { id: 'h-m', from: 'ha', to: 'mut', label: 'runMutation', code: ['server.runUdf', 'application.mutation'] },
+          { id: 'm-t', from: 'mut', to: 'tbl', label: 'commit', code: ['db.committer', 'db.publish'] },
+          { id: 't-u', from: 'tbl', to: 'ui', label: 'push', code: ['db.subscriptions', 'sync.transition'] },
+          { id: 'h-e', from: 'ha', to: 'ext', label: '200 OK', curve: 0.3, code: ['http.actions'] },
         ]}
         steps={[
           { title: 'Provider POSTs an event', text: 'The external service sends a signed POST to https://<deployment>.convex.site/stripe/webhook.', nodes: ['ext', 'site'], edges: ['e-s'] },

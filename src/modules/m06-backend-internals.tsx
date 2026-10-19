@@ -100,22 +100,22 @@ export const summarize = action({
         title="From useMutation() to durable commit"
         height={430}
         nodes={[
-          { id: 'ws', label: 'WebSocket front', sub: 'Mutation req', x: 20, y: 40, tone: 'yellow' },
-          { id: 'app', label: 'Application layer', sub: 'auth · routing', x: 260, y: 40, tone: 'yellow' },
-          { id: 'iso', label: 'V8 isolate', sub: 'your handler', x: 500, y: 40, tone: 'purple' },
-          { id: 'tx', label: 'Transaction', sub: 'snapshot @ begin_ts', x: 760, y: 40, w: 200, tone: 'purple' },
-          { id: 'com', label: 'Committer', sub: 'validate + order', x: 760, y: 260, w: 200, tone: 'red' },
-          { id: 'per', label: 'Persistence', sub: 'docs + index rows', x: 500, y: 260, tone: 'red' },
-          { id: 'sub', label: 'Write log / subs', sub: 'invalidate', x: 260, y: 260, tone: 'red' },
+          { id: 'ws', label: 'WebSocket front', sub: 'Mutation req', x: 20, y: 40, tone: 'yellow', code: ['sync.wsHandler', 'local_backend.router', 'sync.worker'] },
+          { id: 'app', label: 'Application layer', sub: 'auth · routing', x: 260, y: 40, tone: 'yellow', code: ['sync.mutation', 'application.mutation', 'application.idempotency'] },
+          { id: 'iso', label: 'V8 isolate', sub: 'your handler', x: 500, y: 40, tone: 'purple', code: ['isolate.v8', 'isolate.client', 'isolate.determinism', 'isolate.environment'] },
+          { id: 'tx', label: 'Transaction', sub: 'snapshot @ begin_ts', x: 760, y: 40, w: 200, tone: 'purple', code: ['db.transaction', 'db.readSet', 'db.writes'] },
+          { id: 'com', label: 'Committer', sub: 'validate + order', x: 760, y: 260, w: 200, tone: 'red', code: ['db.committer', 'db.occ', 'db.commitConflict', 'db.nextCommitTs'] },
+          { id: 'per', label: 'Persistence', sub: 'docs + index rows', x: 500, y: 260, tone: 'red', code: ['persistence.trait', 'persistence.documentLog', 'persistence.sqlite', 'persistence.postgres'] },
+          { id: 'sub', label: 'Write log / subs', sub: 'invalidate', x: 260, y: 260, tone: 'red', code: ['db.writeLog', 'db.subscriptions', 'db.subscriptionMatch'] },
         ]}
         edges={[
-          { id: 'ws-app', from: 'ws', to: 'app', label: 'decode' },
-          { id: 'app-iso', from: 'app', to: 'iso', label: 'run UDF' },
-          { id: 'iso-tx', from: 'iso', to: 'tx', label: 'db syscalls' },
-          { id: 'tx-com', from: 'tx', to: 'com', label: 'read+write sets' },
-          { id: 'com-per', from: 'com', to: 'per', label: 'write @ commit_ts' },
-          { id: 'per-sub', from: 'per', to: 'sub', label: 'publish' },
-          { id: 'sub-ws', from: 'sub', to: 'ws', label: 'Response + Transitions', curve: -0.15 },
+          { id: 'ws-app', from: 'ws', to: 'app', label: 'decode', code: ['sync.wsHandler', 'client.protocol'] },
+          { id: 'app-iso', from: 'app', to: 'iso', label: 'run UDF', code: ['runner.functionRunner', 'server.registration'] },
+          { id: 'iso-tx', from: 'iso', to: 'tx', label: 'db syscalls', code: ['isolate.syscalls', 'server.syscall', 'server.dbWriter'] },
+          { id: 'tx-com', from: 'tx', to: 'com', label: 'read+write sets', code: ['db.transaction', 'db.committer'] },
+          { id: 'com-per', from: 'com', to: 'per', label: 'write @ commit_ts', code: ['persistence.sqliteWrite', 'persistence.documentLog', 'db.timestamp'] },
+          { id: 'per-sub', from: 'per', to: 'sub', label: 'publish', code: ['db.publish', 'db.writeLog'] },
+          { id: 'sub-ws', from: 'sub', to: 'ws', label: 'Response + Transitions', curve: -0.15, code: ['sync.transition', 'sync.mutation'] },
         ]}
         steps={[
           { title: 'Request arrives', text: 'A Mutation message lands on the WebSocket (or POST /api/mutation over HTTP). The session\'s auth identity was established earlier via Authenticate; the JWT was validated against your auth.config providers.', nodes: ['ws', 'app'], edges: ['ws-app'] },
@@ -162,19 +162,19 @@ export const summarize = action({
         title="A query read through an index at a timestamp"
         height={400}
         nodes={[
-          { id: 'q', label: 'withIndex(by_channel)', sub: 'eq channel = c, take(20)', x: 20, y: 40, w: 230, tone: 'yellow' },
-          { id: 'rng', label: 'Key range', sub: '[ (c), (c, ∞) )', x: 320, y: 40, tone: 'purple' },
-          { id: 'mem', label: 'Recent writes', sub: 'in-memory, ts > persisted', x: 580, y: 40, w: 200, tone: 'red' },
-          { id: 'idx', label: 'indexes rows', sub: 'latest ts ≤ T per key', x: 320, y: 240, tone: 'red' },
-          { id: 'docs', label: 'documents rows', sub: 'fetch (id, ts)', x: 580, y: 240, w: 200, tone: 'red' },
-          { id: 'rs', label: 'Read set', sub: 'range up to 20th key', x: 820, y: 140, w: 160, tone: 'plain' },
+          { id: 'q', label: 'withIndex(by_channel)', sub: 'eq channel = c, take(20)', x: 20, y: 40, w: 230, tone: 'yellow', code: ['server.dbReader', 'server.indexRange'] },
+          { id: 'rng', label: 'Key range', sub: '[ (c), (c, ∞) )', x: 320, y: 40, tone: 'purple', code: ['db.indexRange', 'value.id'] },
+          { id: 'mem', label: 'Recent writes', sub: 'in-memory, ts > persisted', x: 580, y: 40, w: 200, tone: 'red', code: ['db.writeLog', 'db.snapshot'] },
+          { id: 'idx', label: 'indexes rows', sub: 'latest ts ≤ T per key', x: 320, y: 240, tone: 'red', code: ['persistence.sqliteScan', 'persistence.sqlite'] },
+          { id: 'docs', label: 'documents rows', sub: 'fetch (id, ts)', x: 580, y: 240, w: 200, tone: 'red', code: ['persistence.documentLog', 'persistence.sqlite'] },
+          { id: 'rs', label: 'Read set', sub: 'range up to 20th key', x: 820, y: 140, w: 160, tone: 'plain', code: ['db.readSet', 'db.token'] },
         ]}
         edges={[
-          { id: 'q-rng', from: 'q', to: 'rng', label: 'encode bounds' },
-          { id: 'rng-idx', from: 'rng', to: 'idx', label: 'range scan @ T' },
-          { id: 'rng-mem', from: 'rng', to: 'mem', label: 'merge' },
-          { id: 'idx-docs', from: 'idx', to: 'docs', label: 'ids → docs' },
-          { id: 'docs-rs', from: 'docs', to: 'rs', label: 'record' },
+          { id: 'q-rng', from: 'q', to: 'rng', label: 'encode bounds', code: ['server.indexRange', 'server.dbReader'] },
+          { id: 'rng-idx', from: 'rng', to: 'idx', label: 'range scan @ T', code: ['persistence.sqliteScan', 'db.indexRange'] },
+          { id: 'rng-mem', from: 'rng', to: 'mem', label: 'merge', code: ['db.snapshot', 'db.writeLog'] },
+          { id: 'idx-docs', from: 'idx', to: 'docs', label: 'ids → docs', code: ['db.indexRange', 'persistence.sqliteScan'] },
+          { id: 'docs-rs', from: 'docs', to: 'rs', label: 'record', code: ['db.readSet', 'db.indexRange'] },
         ]}
         steps={[
           { title: 'Build the range', text: 'The index expression eq("channel", c) is encoded into byte bounds over the by_channel index: everything starting with key prefix (c). order("desc") just walks it backward.', nodes: ['q', 'rng'], edges: ['q-rng'] },
@@ -230,20 +230,20 @@ export const fileMeta = query({
         title="npx convex dev / deploy"
         height={330}
         nodes={[
-          { id: 'cli', label: 'CLI', sub: 'watch convex/', x: 20, y: 130, tone: 'yellow' },
-          { id: 'esb', label: 'esbuild bundle', sub: 'per runtime', x: 230, y: 30, tone: 'yellow' },
-          { id: 'gen', label: 'Codegen', sub: '_generated/*', x: 230, y: 230, tone: 'plain' },
-          { id: 'up', label: 'Upload', sub: 'modules + schema', x: 450, y: 130, tone: 'purple' },
-          { id: 'an', label: 'Analyze', sub: 'exports, validators', x: 660, y: 30, tone: 'purple' },
-          { id: 'sc', label: 'Schema check', sub: 'backfill indexes', x: 660, y: 230, tone: 'red' },
-          { id: 'live', label: 'Atomic switch', sub: 'new code live', x: 830, y: 130, w: 150, tone: 'red' },
+          { id: 'cli', label: 'CLI', sub: 'watch convex/', x: 20, y: 130, tone: 'yellow', code: ['cli.push', 'cli.useNode'] },
+          { id: 'esb', label: 'esbuild bundle', sub: 'per runtime', x: 230, y: 30, tone: 'yellow', code: ['cli.bundle', 'cli.useNode'] },
+          { id: 'gen', label: 'Codegen', sub: '_generated/*', x: 230, y: 230, tone: 'plain', code: ['cli.codegen', 'server.anyApi'] },
+          { id: 'up', label: 'Upload', sub: 'modules + schema', x: 450, y: 130, tone: 'purple', code: ['cli.push'] },
+          { id: 'an', label: 'Analyze', sub: 'exports, validators', x: 660, y: 30, tone: 'purple', code: ['cli.push', 'server.registration'] },
+          { id: 'sc', label: 'Schema check', sub: 'backfill indexes', x: 660, y: 230, tone: 'red', code: ['cli.push', 'values.validators'] },
+          { id: 'live', label: 'Atomic switch', sub: 'new code live', x: 830, y: 130, w: 150, tone: 'red', code: ['cli.push'] },
         ]}
         edges={[
-          { id: 'cli-esb', from: 'cli', to: 'esb' },
-          { id: 'cli-gen', from: 'cli', to: 'gen' },
-          { id: 'esb-up', from: 'esb', to: 'up' },
-          { id: 'up-an', from: 'up', to: 'an' },
-          { id: 'up-sc', from: 'up', to: 'sc' },
+          { id: 'cli-esb', from: 'cli', to: 'esb', code: ['cli.bundle'] },
+          { id: 'cli-gen', from: 'cli', to: 'gen', code: ['cli.codegen'] },
+          { id: 'esb-up', from: 'esb', to: 'up', code: ['cli.push'] },
+          { id: 'up-an', from: 'up', to: 'an', code: ['cli.push'] },
+          { id: 'up-sc', from: 'up', to: 'sc', code: ['cli.push'] },
           { id: 'an-live', from: 'an', to: 'live' },
           { id: 'sc-live', from: 'sc', to: 'live' },
         ]}

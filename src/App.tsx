@@ -6,6 +6,8 @@ import { useProgress } from './state/progress';
 import { Playground } from './playground/Playground';
 import { LiveLab } from './LiveLab';
 import { useConvexClient } from './state/convex';
+import { CodeDrawer } from './code/CodeDrawer';
+import { SourceMap } from './code/SourceMap';
 
 const BRAND = { yellow: '#F3B01C', red: '#EE342F', purple: '#8D2676', ink: '#141210' };
 
@@ -44,6 +46,7 @@ export function App() {
     page = mod ? <ModulePage id={mod.id} /> : <Home />;
   } else if (route.startsWith('/playground')) page = <Playground />;
   else if (route.startsWith('/lab')) page = <LiveLab />;
+  else if (route.startsWith('/source')) page = <SourceMap />;
   else page = <Home />;
 
   return (
@@ -51,6 +54,7 @@ export function App() {
       <button className="nav-toggle" onClick={() => setNavOpen(!navOpen)} aria-label="Toggle navigation">☰</button>
       <Sidebar route={route} open={navOpen} />
       <main className="main">{page}</main>
+      <CodeDrawer />
       <Toaster />
     </div>
   );
@@ -89,6 +93,7 @@ function Sidebar({ route, open }: { route: string; open: boolean }) {
         <div className="nav-label">Practice</div>
         <a href="#/playground" className={`nav-item ${route.startsWith('/playground') ? 'on' : ''}`}><span className="nav-n">▸</span><span className="nav-t">Playground & challenges</span></a>
         <a href="#/lab" className={`nav-item ${route.startsWith('/lab') ? 'on' : ''}`}><span className="nav-n">◉</span><span className="nav-t">Live Lab</span><span className={`nav-min ${client ? 'live' : ''}`}>{client ? 'live' : 'setup'}</span></a>
+        <a href="#/source" className={`nav-item ${route.startsWith('/source') ? 'on' : ''}`}><span className="nav-n">{'</>'}</span><span className="nav-t">Source map</span></a>
       </nav>
       <div className="side-foot">Every block has a <b>Copy</b> button. Paste it to Claude to go deeper.</div>
     </aside>
