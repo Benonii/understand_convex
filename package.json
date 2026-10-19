@@ -1,0 +1,26 @@
+{
+  "name": "convex-academy",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "farm start",
+    "build": "farm build",
+    "preview": "farm preview",
+    "convex": "convex dev"
+  },
+  "dependencies": {
+    "@paper-design/shaders-react": "^0.0.81",
+    "convex": "^1.47.0",
+    "motion": "^14.4.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@farmfe/cli": "^1.0.5",
+    "@farmfe/core": "^1.7.11",
+    "@farmfe/plugin-react": "^1.2.6",
+    "@types/react": "^18.3.31",
+    "@types/react-dom": "^18.3.7",
+    "typescript": "^7.0.2"
+  }
+}
