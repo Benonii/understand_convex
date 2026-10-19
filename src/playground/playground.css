@@ -63,7 +63,7 @@
 
 /* sync sim */
 .pg-form { display: flex; flex-wrap: wrap; gap: 8px; align-items: center; margin-bottom: 10px; }
-.pg-hint { font-size: 12px; color: var(--muted); line-height: 1.5; border-left: 2px solid var(--purple); padding-left: 10px; margin: 6px 0 10px; }
+.pg-hint { font-size: 12px; color: var(--muted); line-height: 1.5; margin: 6px 0 10px; }
 .pg-table { border: 1px solid var(--line); border-radius: 10px; overflow: hidden; font-family: var(--font-mono); font-size: 12px; }
 .pg-tr { display: grid; grid-template-columns: 44px 70px 1fr; gap: 8px; padding: 5px 10px; border-top: 1px solid var(--line); transition: background .3s; }
 .pg-tr span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
@@ -77,14 +77,14 @@
 @keyframes pg-scan { 50% { box-shadow: 0 0 0 3px color-mix(in oklab, var(--purple) 30%, transparent); } }
 .pg-sub.invalidated { border-color: var(--red); background: color-mix(in oklab, var(--red) 12%, var(--bg2)); }
 .pg-sub.unaffected { opacity: .6; }
-.pg-client { border-left: 3px solid var(--c); padding: 8px 10px; margin-bottom: 10px; background: var(--bg2); border-radius: 0 10px 10px 0; }
+.pg-client { border: 1px solid color-mix(in oklab, var(--c) 45%, var(--line)); padding: 8px 10px; margin-bottom: 10px; background: var(--bg2); border-radius: 10px; }
 .pg-client-top { display: flex; justify-content: space-between; margin-bottom: 6px; }
 .pg-result { display: flex; flex-direction: column; gap: 2px; padding: 4px 0; font-size: 12px; border-radius: 6px; }
 .pg-result .pg-mono { word-break: break-word; }
 .pg-result.flash { animation: pg-flash 1.4s ease; }
 @keyframes pg-flash { 0% { background: color-mix(in oklab, var(--yellow) 40%, transparent); } 100% { background: transparent; } }
 .pg-log { background: var(--bg2); border: 1px solid var(--line); border-radius: 14px; padding: 12px 14px; max-height: 240px; overflow: auto; }
-.pg-log-line { font-size: 12.5px; line-height: 1.5; padding: 3px 0 3px 10px; border-left: 2px solid var(--line); margin-bottom: 4px; animation: pg-in .3s ease both; }
+.pg-log-line { font-size: 12.5px; line-height: 1.5; padding: 3px 0; margin-bottom: 4px; animation: pg-in .3s ease both; }
 .pg-log-line.tone-y { border-color: var(--yellow); }
 .pg-log-line.tone-r { border-color: var(--red); }
 .pg-log-line.tone-p { border-color: var(--purple); }

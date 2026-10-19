@@ -91,7 +91,6 @@ function IndexVisualizer() {
                 fontFamily: 'JetBrains Mono, monospace', fontSize: 13, transition: 'all .3s',
                 background: hit ? 'color-mix(in oklab, var(--red) 22%, transparent)' : inR ? 'color-mix(in oklab, var(--yellow) 16%, transparent)' : 'transparent',
                 opacity: inR ? 1 : 0.38,
-                borderLeft: `3px solid ${hit ? 'var(--red)' : inR ? 'var(--yellow)' : 'var(--line)'}`,
                 marginBottom: 3,
               }}
             >
