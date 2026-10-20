@@ -1,15 +1,30 @@
 # Convex, Deeply
 
-Interactive deep-dive course on how Convex works. Built with Farm + React + Convex, shaders from paper.design.
+An interactive deep dive into how Convex works: the database, OCC transactions, the sync engine and the Rust backend. Animated diagrams link to real, verified source excerpts. Includes simulators, 49 challenges, and a Live Lab that taps the real WebSocket protocol.
 
-## Run
+Stack: Farm + React 18 + Convex, shaders from paper.design.
+
+## Local development
 ```bash
 npm install
-npm run dev          # farm dev server
-npx convex dev       # (optional) creates a deployment for the Live Lab + progress sync
+npx convex dev        # creates/links a deployment, writes CONVEX_URL to .env.local, pushes convex/
+npm run dev           # in another terminal: http://localhost:9000
 ```
-Set `FARM_CONVEX_URL=https://<name>.convex.cloud` in `.env.local` (or paste the URL in the Live Lab page).
+The app works without Convex too. Progress is then kept in localStorage, and the Live Lab asks for a deployment URL.
 
-## Deploy
-- Convex: `npx convex deploy` (needs `CONVEX_DEPLOY_KEY` in CI).
-- Vercel: build command `npm run build`, output `dist`, env `FARM_CONVEX_URL`.
+## Deploy (Vercel + Convex)
+1. Push this repo to GitHub and import it in Vercel. `vercel.json` sets everything (build, output `dist`, caching).
+2. In the Convex dashboard → your project → Production → Settings → **Generate production deploy key**.
+3. In Vercel → Project → Settings → Environment Variables, add `CONVEX_DEPLOY_KEY` (Production).
+4. Deploy. The build runs `npx convex deploy`, which pushes `convex/` to production and builds the site with `FARM_CONVEX_URL` set to the production URL.
+
+No Convex? Set Vercel's build command to `npm run build`. The site deploys as a static app without the Live Lab.
+
+## Scripts
+- `npm run typecheck`: app + Convex functions
+- `npm run verify-code`: re-checks every source excerpt in `src/code/` against clones of `get-convex/convex-backend` and `get-convex/convex-js` in `../src-ref`, and regenerates real line numbers
+
+## What's in `convex/`
+- `progress.ts`: anonymous per-browser course progress
+- `lab.ts`: Live Lab chat (bounded inputs, two fixed rooms) and a hot counter for watching OCC retries
+- `crons.ts`: hourly prune of lab messages older than 24h

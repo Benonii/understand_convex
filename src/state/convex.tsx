@@ -8,7 +8,7 @@ export const api = anyApi;
 
 const URL_KEY = 'convex-academy-url';
 export function getConvexUrl(): string | undefined {
-  const env = (import.meta as any).env?.FARM_CONVEX_URL || (typeof process !== 'undefined' ? (process as any).env?.FARM_CONVEX_URL : undefined);
+  const env = process.env.FARM_CONVEX_URL; // inlined at build time by farm.config.ts
   let stored: string | null = null;
   try { stored = localStorage.getItem(URL_KEY); } catch {}
   return stored || env || undefined;

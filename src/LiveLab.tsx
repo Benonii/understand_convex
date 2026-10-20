@@ -83,7 +83,7 @@ function Chat({ room, setRoom }: { room: string; setRoom: (r: string) => void })
       </div>
       <p className="muted small">Open this page in a second tab. Send in one, watch the other update. Switching rooms sends a <code className="ic">ModifyQuerySet</code> (Remove + Add).</p>
       <form className="lab-send" onSubmit={(e) => { e.preventDefault(); if (!body.trim()) return; send({ room, author: me, body: body.trim() }); setBody(''); }}>
-        <input value={body} onChange={(e) => setBody(e.target.value)} placeholder={`Message #${room} (optimistic update on)`} maxLength={500} />
+        <input value={body} onChange={(e) => setBody(e.target.value)} placeholder={`Message #${room} (optimistic update on)`} maxLength={280} />
         <button type="submit">Send</button>
       </form>
       <ul className="lab-msgs">

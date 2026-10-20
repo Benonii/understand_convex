@@ -18,6 +18,9 @@ export const save = mutation({
     challenges: v.record(v.string(), v.boolean()),
   },
   handler: async (ctx, args) => {
+    // Anonymous, per-browser progress: bound the payload size.
+    if (args.deviceId.length > 64) throw new Error('Invalid device id');
+    if (Object.keys(args.done).length > 50 || Object.keys(args.challenges).length > 200) throw new Error('Too many entries');
     const existing = await ctx.db
       .query('progress')
       .withIndex('by_device', (q) => q.eq('deviceId', args.deviceId))
