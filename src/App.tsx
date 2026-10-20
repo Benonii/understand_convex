@@ -9,7 +9,7 @@ import { useConvexClient } from './state/convex';
 import { CodeDrawer } from './code/CodeDrawer';
 import { SourceMap } from './code/SourceMap';
 
-const BRAND = { yellow: '#F3B01C', red: '#EE342F', purple: '#8D2676', ink: '#141210' };
+const BRAND = { yellow: '#F3B01C', red: '#EE342F', purple: '#8D2676', ink: '#000000' };
 
 function useRoute() {
   const [hash, setHash] = useState(location.hash || '#/');
