@@ -1,0 +1,11 @@
+name: Bug
+description: The app is broken or behaves unexpectedly
+labels: [bug]
+body:
+  - type: textarea
+    id: what
+    attributes:
+      label: What happened
+      description: Steps to reproduce, browser and device
+    validations:
+      required: true

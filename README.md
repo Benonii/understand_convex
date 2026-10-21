@@ -4,6 +4,8 @@ An interactive deep dive into how Convex works: the database, OCC transactions, 
 
 Stack: Farm + React 18 + Convex, shaders from paper.design.
 
+[![CI](https://github.com/Benonii/understand_convex/actions/workflows/ci.yml/badge.svg)](https://github.com/Benonii/understand_convex/actions/workflows/ci.yml) · MIT licensed · Unofficial, not affiliated with Convex, Inc.
+
 ## Local development
 ```bash
 npm install
@@ -22,9 +24,16 @@ No Convex? Set Vercel's build command to `npm run build`. The site deploys as a 
 
 ## Scripts
 - `npm run typecheck`: app + Convex functions
-- `npm run verify-code`: re-checks every source excerpt in `src/code/` against clones of `get-convex/convex-backend` and `get-convex/convex-js` in `../src-ref`, and regenerates real line numbers
+- `npm run fetch-sources`: clones the exact Convex commits the excerpts are pinned to into `../src-ref`
+- `npm run verify-code`: checks every excerpt in `src/code/` is verbatim and regenerates real line numbers
 
 ## What's in `convex/`
 - `progress.ts`: anonymous per-browser course progress
 - `lab.ts`: Live Lab chat (bounded inputs, two fixed rooms) and a hot counter for watching OCC retries
 - `crons.ts`: hourly prune of lab messages older than 24h
+
+## Contributing
+Found something wrong or outdated? Open an issue with the "Content error" template, or send a PR. See [CONTRIBUTING.md](CONTRIBUTING.md).
+
+## License
+This project's code and course content are [MIT](LICENSE). The Convex source excerpts in `src/code/` keep their original licenses (FSL-1.1-Apache-2.0 for convex-backend, Apache-2.0 for convex-js). See [THIRD_PARTY_NOTICES.md](THIRD_PARTY_NOTICES.md).

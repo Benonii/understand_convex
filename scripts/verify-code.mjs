@@ -37,3 +37,4 @@ for (const [key, r] of Object.entries(refs)) {
 }
 fs.writeFileSync('src/code/lines.json', JSON.stringify(result));
 console.log(`${Object.keys(refs).length} refs checked, ${bad} with problems`);
+if (bad) process.exit(1);

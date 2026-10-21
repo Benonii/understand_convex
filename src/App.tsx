@@ -95,7 +95,10 @@ function Sidebar({ route, open }: { route: string; open: boolean }) {
         <a href="#/lab" className={`nav-item ${route.startsWith('/lab') ? 'on' : ''}`}><span className="nav-n">◉</span><span className="nav-t">Live Lab</span><span className={`nav-min ${client ? 'live' : ''}`}>{client ? 'live' : 'setup'}</span></a>
         <a href="#/source" className={`nav-item ${route.startsWith('/source') ? 'on' : ''}`}><span className="nav-n">{'</>'}</span><span className="nav-t">Source map</span></a>
       </nav>
-      <div className="side-foot">Every block has a <b>Copy</b> button. Paste it to Claude to go deeper.</div>
+      <div className="side-foot">
+        Every block has a <b>Copy</b> button. Paste it to Claude to go deeper.
+        <span className="side-legal">Unofficial and open source. Not affiliated with Convex, Inc. <a href="https://github.com/Benonii/understand_convex" target="_blank" rel="noreferrer">GitHub</a></span>
+      </div>
     </aside>
   );
 }

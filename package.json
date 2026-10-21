@@ -8,7 +8,8 @@
     "preview": "farm preview",
     "convex": "convex dev",
     "typecheck": "tsc --noEmit -p . && tsc --noEmit -p convex",
-    "verify-code": "node --experimental-strip-types --no-warnings scripts/verify-code.mjs ../src-ref"
+    "verify-code": "node --experimental-strip-types --no-warnings scripts/verify-code.mjs ${SRC_REF:-../src-ref}",
+    "fetch-sources": "sh scripts/fetch-sources.sh"
   },
   "dependencies": {
     "@paper-design/shaders-react": "^0.0.81",
@@ -26,5 +27,10 @@
   },
   "engines": {
     "node": ">=20"
+  },
+  "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Benonii/understand_convex.git"
   }
 }
